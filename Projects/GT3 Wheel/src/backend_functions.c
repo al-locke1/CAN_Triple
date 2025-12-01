@@ -2142,11 +2142,21 @@ char *format_CAN_message(const CAN_Message *msg, char *buffer, size_t buf_size)
  * \param freqency The frequency in Hz for the function call
  * \return updated Averaged Value
  */
-float lowpass_filter_by_frequency(float basevalue, float newvalue, float time_constant, float frequency)
+float lowpass_filter_by_frequency(float basevalue,
+                                  float newvalue,
+                                  float time_constant,
+                                  float frequency)
 {
-    float dt = 1.0f / frequency;
+    // Protect against nonsense frequency
+    if (frequency <= 0.0f)
+    {
+        return basevalue;
+    }
+
+    float dt    = 1.0f / frequency;
     float alpha = dt / (time_constant + dt);
-    return basevalue + alpha * (newvalue - base);
+
+    return basevalue + alpha * (newvalue - basevalue);
 }
 
 /**
@@ -2157,11 +2167,22 @@ float lowpass_filter_by_frequency(float basevalue, float newvalue, float time_co
  * \param freqency The frequency in Hz for the function call
  * \return updated Averaged Value
  */
-float lowpass_filter_by_timedelta(float basevalue, float newvalue,  float time_constant, float last_timestamp, float current_timestamp)
+float lowpass_filter_by_timedelta(float basevalue,
+                                  float newvalue,
+                                  float time_constant,
+                                  float last_timestamp,
+                                  float current_timestamp)
 {
-    float dt = now_ts - last_ts;
-    if (dt <= 0.0f) return base;   // protect from bad timestamps
+    float dt = current_timestamp - last_timestamp;
+
+    // Protect from bad or non-advancing timestamps
+    if (dt <= 0.0f)
+    {
+        return basevalue;
+    }
 
     float alpha = dt / (time_constant + dt);
-    return base + alpha * (newval - base);
+
+    return basevalue + alpha * (newvalue - basevalue);
 }
+
